@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useSidebar } from "@/lib/sidebar-context"
+import { useAuth } from "@/lib/auth-context"
 
 interface Permission {
   id: string
@@ -54,6 +55,7 @@ const activityLog = [
 
 export function AdminProfilePage() {
   const { setActivePage } = useSidebar()
+  const { user, logout } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -61,8 +63,8 @@ export function AdminProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
 
   // Profile Data
-  const [name, setName] = useState("Admin User")
-  const [email, setEmail] = useState("admin@trafficai.io")
+  const [name, setName] = useState(user?.name || "Admin User")
+  const [email, setEmail] = useState(user?.email || "admin@trafficai.io")
   const [phone, setPhone] = useState("+1 (555) 123-4567")
   const [department, setDepartment] = useState("Operations")
 
@@ -97,7 +99,7 @@ export function AdminProfilePage() {
   }
 
   const handleLogout = () => {
-    setActivePage("dashboard")
+    logout()
   }
 
   const formatTimeAgo = (date: Date) => {

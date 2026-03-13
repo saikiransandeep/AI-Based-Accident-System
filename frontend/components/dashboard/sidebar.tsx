@@ -81,7 +81,7 @@ export function Sidebar() {
           </div>
           {(isExpanded || isMobileOpen) && (
             <div className="overflow-hidden">
-              <h1 className="font-bold text-lg text-foreground tracking-tight">TrafficAI</h1>
+              <h1 className="font-bold text-lg text-foreground tracking-tight">AI-ACCIDENT DETECTION</h1>
               <p className="text-xs text-muted-foreground">Monitoring System</p>
             </div>
           )}

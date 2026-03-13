@@ -65,7 +65,7 @@ export function HistoryPage() {
 
   useEffect(() => {
     const fetchIncidents = () => {
-      fetch("http://127.0.0.1:5000/api/incidents")
+      fetch("http://127.0.0.1:5000/api/history")
         .then((res) => res.json())
         .then((data) => {
           if (data.incidents) {

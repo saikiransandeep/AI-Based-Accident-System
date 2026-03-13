@@ -12,12 +12,35 @@ import { EmergencyServicesPage } from "@/components/pages/emergency-services"
 import { SystemHealthPage } from "@/components/pages/system-health"
 import { SettingsPage } from "@/components/pages/settings"
 import { AdminProfilePage } from "@/components/pages/admin-profile"
+import { AuthProvider, useAuth } from "@/lib/auth-context"
+import { LoginPage } from "@/components/pages/login-page"
+import { RegisterPage } from "@/components/pages/register-page"
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context"
 import { ThemeProvider } from "@/lib/theme-context"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
 
 function PageContent() {
   const { activePage, isExpanded } = useSidebar()
+  const { user, isLoading } = useAuth()
+  const [authView, setAuthView] = useState<"login" | "register">("login")
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return authView === "login" ? (
+      <LoginPage onSwitchToRegister={() => setAuthView("register")} />
+    ) : (
+      <RegisterPage onSwitchToLogin={() => setAuthView("login")} />
+    )
+  }
 
   const renderPage = () => {
     switch (activePage) {
@@ -77,9 +100,11 @@ function PageContent() {
 export default function Dashboard() {
   return (
     <ThemeProvider>
-      <SidebarProvider>
-        <PageContent />
-      </SidebarProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <PageContent />
+        </SidebarProvider>
+      </AuthProvider>
     </ThemeProvider>
   )
 }

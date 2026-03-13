@@ -94,7 +94,7 @@ def init_db():
             address TEXT,
             distance TEXT,
             available INTEGER,
-            responseTime TEXT
+            response_time TEXT
         )
     """)
 
@@ -364,7 +364,7 @@ def manage_contacts():
     if request.method == "POST":
         data = request.json
         cur.execute("""
-            INSERT INTO emergency_contacts(id, name, type, phone, address, distance, available, responseTime)
+            INSERT INTO emergency_contacts(id, name, type, phone, address, distance, available, response_time)
             VALUES(?,?,?,?,?,?,?,?)
         """, (data["id"], data["name"], data["type"], data["phone"], data["address"], data["distance"], 1 if data["available"] else 0, data["responseTime"]))
         conn.commit()
@@ -383,7 +383,7 @@ def manage_contacts():
             "address": row["address"],
             "distance": row["distance"],
             "available": bool(row["available"]),
-            "responseTime": row["responseTime"]
+            "responseTime": row["response_time"]
         })
     conn.close()
     return jsonify({"contacts": contacts})
@@ -403,7 +403,7 @@ def update_delete_contact(id):
     data = request.json
     cur.execute("""
         UPDATE emergency_contacts SET 
-        name=?, type=?, phone=?, address=?, distance=?, available=?, responseTime=?
+        name=?, type=?, phone=?, address=?, distance=?, available=?, response_time=?
         WHERE id=?
     """, (data["name"], data["type"], data["phone"], data["address"], data["distance"], 1 if data["available"] else 0, data["responseTime"], id))
     conn.commit()
@@ -467,8 +467,10 @@ def get_markers():
 def system_health():
     return jsonify({
         "status": "online",
-        "cpu": random.randint(20, 45),
-        "memory": random.randint(30, 60),
+        "cpuUsage": random.randint(20, 45),
+        "memoryUsage": random.randint(30, 60),
+        "networkUsage": random.randint(15, 40),
+        "latency": random.randint(10, 35),
         "gpu": random.randint(15, 30),
         "storage": 42
     })
@@ -554,7 +556,7 @@ def video_stream(video_name):
         )
 
 
-@app.route("/api/live-camera/<video_name>")
+@app.route("/api/live-camera/<path:video_name>")
 def live_camera(video_name):
 
     return Response(
