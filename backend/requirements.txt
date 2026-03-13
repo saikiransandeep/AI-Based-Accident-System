@@ -1,0 +1,6 @@
+Flask
+Werkzeug
+numpy
+opencv-python
+python-dotenv
+twilio
