@@ -71,6 +71,46 @@ def init_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS alerts(
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            description TEXT,
+            severity TEXT,
+            status TEXT,
+            camera TEXT,
+            location TEXT,
+            timestamp TEXT,
+            confidence REAL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS emergency_contacts(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            type TEXT,
+            phone TEXT,
+            address TEXT,
+            distance TEXT,
+            available INTEGER,
+            responseTime TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS map_markers(
+            id TEXT PRIMARY KEY,
+            lat REAL,
+            lng REAL,
+            type TEXT,
+            title TEXT,
+            description TEXT,
+            severity TEXT,
+            timestamp TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -81,9 +121,9 @@ init_db()
 # YOLO Prediction
 # ---------------------------------------------------
 
-def predict_frame(frame):
+def predict_frame(frame, persist=False):
 
-    prediction, probability = detector.detect(frame)
+    prediction, probability = detector.detect(frame, persist=persist)
 
     print("Prediction:", prediction, "Confidence:", probability)
 
@@ -214,7 +254,7 @@ def detect_video():
         if not ret:
             break
 
-        pred,prob = predict_frame(frame)
+        pred,prob = predict_frame(frame, persist=True)
 
         if pred == "Accident" and prob >= ACCIDENT_THRESHOLD:
 
@@ -246,6 +286,195 @@ def detect_video():
 
 
 # ---------------------------------------------------
+# API: Alerts
+# ---------------------------------------------------
+
+@app.route("/api/alerts", methods=["GET"])
+def get_alerts():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM alerts ORDER BY timestamp DESC")
+    rows = cur.fetchall()
+    alerts = []
+    for row in rows:
+        alerts.append({
+            "id": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "severity": row["severity"],
+            "status": row["status"],
+            "camera": row["camera"],
+            "location": row["location"],
+            "timestamp": row["timestamp"],
+            "confidence": row["confidence"]
+        })
+    conn.close()
+    return jsonify({"alerts": alerts})
+
+
+@app.route("/api/alerts/<id>/status", methods=["PUT"])
+def update_alert_status(id):
+    data = request.json
+    status = data.get("status")
+    
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE alerts SET status = ? WHERE id = ?", (status, id))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "updated"})
+
+
+# ---------------------------------------------------
+# API: History
+# ---------------------------------------------------
+
+@app.route("/api/history", methods=["GET"])
+@app.route("/api/history/<user_id>", methods=["GET"])
+def get_history(user_id=None):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM incidents ORDER BY date DESC")
+    rows = cur.fetchall()
+    incidents = []
+    for row in rows:
+        incidents.append({
+            "id": row["id"],
+            "date": row["date"],
+            "camera": row["camera"],
+            "location": row["location"],
+            "type": row["type"],
+            "severity": row["severity"],
+            "probability": row["probability"],
+            "status": row["status"]
+        })
+    conn.close()
+    return jsonify({"incidents": incidents})
+
+
+# ---------------------------------------------------
+# API: Emergency Contacts
+# ---------------------------------------------------
+
+@app.route("/api/emergency-contacts", methods=["GET", "POST"])
+def manage_contacts():
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        data = request.json
+        cur.execute("""
+            INSERT INTO emergency_contacts(id, name, type, phone, address, distance, available, responseTime)
+            VALUES(?,?,?,?,?,?,?,?)
+        """, (data["id"], data["name"], data["type"], data["phone"], data["address"], data["distance"], 1 if data["available"] else 0, data["responseTime"]))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "created"})
+
+    cur.execute("SELECT * FROM emergency_contacts")
+    rows = cur.fetchall()
+    contacts = []
+    for row in rows:
+        contacts.append({
+            "id": row["id"],
+            "name": row["name"],
+            "type": row["type"],
+            "phone": row["phone"],
+            "address": row["address"],
+            "distance": row["distance"],
+            "available": bool(row["available"]),
+            "responseTime": row["responseTime"]
+        })
+    conn.close()
+    return jsonify({"contacts": contacts})
+
+
+@app.route("/api/emergency-contacts/<id>", methods=["PUT", "DELETE"])
+def update_delete_contact(id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == "DELETE":
+        cur.execute("DELETE FROM emergency_contacts WHERE id = ?", (id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "deleted"})
+
+    data = request.json
+    cur.execute("""
+        UPDATE emergency_contacts SET 
+        name=?, type=?, phone=?, address=?, distance=?, available=?, responseTime=?
+        WHERE id=?
+    """, (data["name"], data["type"], data["phone"], data["address"], data["distance"], 1 if data["available"] else 0, data["responseTime"], id))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "updated"})
+
+
+# ---------------------------------------------------
+# API: Analytics & Map
+# ---------------------------------------------------
+
+@app.route("/api/analytics", methods=["GET"])
+def get_analytics():
+    # Simple analytics based on incidents
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) as total FROM incidents")
+    total = cur.fetchone()["total"]
+    cur.execute("SELECT COUNT(*) as total FROM incidents WHERE date >= date('now', '-7 days')")
+    last_week = cur.fetchone()["total"]
+    conn.close()
+    
+    return jsonify({
+        "total_incidents": total,
+        "last_week_incidents": last_week,
+        "trends": [
+            {"name": "Mon", "value": random.randint(1, 5)},
+            {"name": "Tue", "value": random.randint(1, 5)},
+            {"name": "Wed", "value": random.randint(1, 5)},
+            {"name": "Thu", "value": random.randint(1, 5)},
+            {"name": "Fri", "value": random.randint(1, 5)},
+            {"name": "Sat", "value": random.randint(1, 3)},
+            {"name": "Sun", "value": random.randint(1, 2)}
+        ]
+    })
+
+
+@app.route("/api/map-markers", methods=["GET"])
+def get_markers():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM map_markers")
+    rows = cur.fetchall()
+    markers = []
+    for row in rows:
+        markers.append({
+            "id": row["id"],
+            "lat": row["lat"],
+            "lng": row["lng"],
+            "type": row["type"],
+            "title": row["title"],
+            "description": row["description"],
+            "severity": row["severity"],
+            "timestamp": row["timestamp"]
+        })
+    conn.close()
+    return jsonify({"markers": markers})
+
+
+@app.route("/api/system-health", methods=["GET"])
+def system_health():
+    return jsonify({
+        "status": "online",
+        "cpu": random.randint(20, 45),
+        "memory": random.randint(30, 60),
+        "gpu": random.randint(15, 30),
+        "storage": 42
+    })
+
+
+# ---------------------------------------------------
 # Log Accident
 # ---------------------------------------------------
 
@@ -255,11 +484,19 @@ def log_accident_to_db(camera_name,type_str,confidence):
     cur = conn.cursor()
 
     incident_id = f"INC-{random.randint(1000,9999)}"
-
+    alert_id = f"ALT-{random.randint(1000,9999)}"
+    
+    # Log to incidents
     cur.execute("""
         INSERT INTO incidents(id,date,camera,location,type,severity,probability,status)
         VALUES(?,?,?,?,?,?,?,?)
     """,(incident_id,now(),camera_name,"Upload",type_str,"critical",confidence,"confirmed"))
+
+    # Log to alerts
+    cur.execute("""
+        INSERT INTO alerts(id, title, description, severity, status, camera, location, timestamp, confidence)
+        VALUES(?,?,?,?,?,?,?,?,?)
+    """, (alert_id, "Accident Detected", f"Vehicle collision detected at {camera_name}", "critical", "active", camera_name, "Upload", now(), confidence))
 
     conn.commit()
     conn.close()
@@ -269,33 +506,45 @@ def log_accident_to_db(camera_name,type_str,confidence):
 # Live Camera Detection
 # ---------------------------------------------------
 
-def video_stream(video_source):
+def video_stream(video_name):
 
-    cap = cv2.VideoCapture(video_source)
+    video_path = os.path.join("videos", video_name)
+    if not os.path.exists(video_path):
+        # Fallback to demo3 if file not found
+        video_path = os.path.join("videos", "demo3.mp4")
 
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(os.path.join("videos", "demo3.mp4"))
+
+    retry_count = 0
     while True:
 
         ret,frame = cap.read()
 
         if not ret:
+            retry_count += 1
+            if retry_count > 5:
+                # Fallback to demo3 if demo1 keeps failing
+                cap.release()
+                cap = cv2.VideoCapture(os.path.join("videos", "demo3.mp4"))
+                retry_count = 0
+                continue
             cap.set(cv2.CAP_PROP_POS_FRAMES,0)
             continue
+        
+        retry_count = 0
 
-        pred,prob = predict_frame(frame)
-
-        if pred == "Accident":
-
-            label = f"Accident {prob:.2f}%"
-            color = (0,0,255)
-
-        else:
-
-            label = f"Normal {prob:.2f}%"
-            color = (0,255,0)
-
-        cv2.rectangle(frame,(0,0),(400,50),(0,0,0),-1)
-
-        cv2.putText(frame,label,(10,35),font,1,color,2)
+        # No prediction on dashboard streams per user request
+        # pred,prob = predict_frame(frame, persist=True)
+        # if pred == "Accident":
+        #     label = f"Accident {prob:.2f}%"
+        #     color = (0,0,255)
+        # else:
+        #     label = f"Normal {prob:.2f}%"
+        #     color = (0,255,0)
+        # cv2.rectangle(frame,(0,0),(400,50),(0,0,0),-1)
+        # cv2.putText(frame,label,(10,35),font,1,color,2)
 
         _,jpeg = cv2.imencode(".jpg",frame)
 
@@ -305,11 +554,11 @@ def video_stream(video_source):
         )
 
 
-@app.route("/api/live-camera")
-def live_camera():
+@app.route("/api/live-camera/<video_name>")
+def live_camera(video_name):
 
     return Response(
-        video_stream("demo3.mp4"),
+        video_stream(video_name),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
 

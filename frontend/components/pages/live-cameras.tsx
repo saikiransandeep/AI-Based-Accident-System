@@ -540,7 +540,7 @@ export function LiveCamerasPage() {
               "http://127.0.0.1:5000/api/live-camera/demo5.mp4",
               "http://127.0.0.1:5000/api/live-camera/demo6.mp4",
               "http://127.0.0.1:5000/api/live-camera/demo7.mp4",
-              "http://127.0.0.1:5000/api/live-camera/demo8.mp4",
+              "http://127.0.0.1:5000/api/live-camera/demo2.mp4",
             ];
             const videoSource = i < 8 ? demoSources[i] : null;
 

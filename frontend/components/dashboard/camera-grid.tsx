@@ -18,10 +18,10 @@ const cameras = [
     name: "Highway I-95 North",
     location: "Exit 42, Downtown",
     status: "online",
-    hasAlert: true,
+    hasAlert: false,
     fps: 30,
     quality: "HD",
-    videoSource: "http://127.0.0.1:5000/api/live-camera/demo2.mp4",
+    videoSource: "http://localhost:5000/api/live-camera/demo2.mp4",
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ const cameras = [
     hasAlert: false,
     fps: 30,
     quality: "HD",
-    videoSource: "http://127.0.0.1:5000/api/live-camera/demo1.mp4",
+    videoSource: "http://localhost:5000/api/live-camera/demo4.mp4",
   },
   {
     id: 3,
@@ -41,7 +41,7 @@ const cameras = [
     hasAlert: false,
     fps: 24,
     quality: "HD",
-    videoSource: "http://127.0.0.1:5000/api/live-camera/demo6.mp4",
+    videoSource: "http://localhost:5000/api/live-camera/demo6.mp4",
   },
   {
     id: 4,
@@ -50,8 +50,8 @@ const cameras = [
     status: "online",
     hasAlert: true,
     fps: 30,
-    quality: "4K",
-    videoSource: "http://127.0.0.1:5000/api/live-camera/demo4.mp4",
+    quality: "K",
+    videoSource: "http://localhost:5000/api/live-camera/demo5.mp4",
   },
 ];
 
