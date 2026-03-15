@@ -96,14 +96,23 @@ class YoloAccidentDetector:
                 x2, y2 = min(w_frame, x2), min(h_frame, y2)
                 
                 if use_cnn and (x2 > x1) and (y2 > y1):
-                    crop = frame[y1:y2, x1:x2]
+                    # Add 20% spatial context padding around the vehicle
+                    pad_w, pad_h = int((x2 - x1) * 0.20), int((y2 - y1) * 0.20)
+                    px1 = max(0, x1 - pad_w)
+                    py1 = max(0, y1 - pad_h)
+                    px2 = min(w_frame, x2 + pad_w)
+                    py2 = min(h_frame, y2 + pad_h)
+                    
+                    crop = frame[py1:py2, px1:px2]
                     try:
                         input_tensor = self.transform(crop).unsqueeze(0).to(self.device)
                         with torch.no_grad():
                             outputs = self.efficientnet(input_tensor)
                             probs = torch.nn.functional.softmax(outputs, dim=1)
                             accident_prob = float(probs[0][0]) * 100
-                            max_accident_prob = max(max_accident_prob, accident_prob)
+                            # Require >70% confidence to consider it a definite accident from CNN
+                            if accident_prob > 70.0:
+                                max_accident_prob = max(max_accident_prob, accident_prob)
                     except:
                         pass
                 else:
@@ -132,7 +141,14 @@ class YoloAccidentDetector:
                 
                 # --- CNN Classification on Cropped Vehicle ---
                 if use_cnn and (x2 > x1) and (y2 > y1):
-                    crop = frame[y1:y2, x1:x2]
+                    # Add 20% spatial context padding around the vehicle for better CNN feature extraction
+                    pad_w, pad_h = int((x2 - x1) * 0.20), int((y2 - y1) * 0.20)
+                    px1 = max(0, x1 - pad_w)
+                    py1 = max(0, y1 - pad_h)
+                    px2 = min(w_frame, x2 + pad_w)
+                    py2 = min(h_frame, y2 + pad_h)
+                    
+                    crop = frame[py1:py2, px1:px2]
                     try:
                         input_tensor = self.transform(crop).unsqueeze(0).to(self.device)
                         with torch.no_grad():
@@ -140,7 +156,9 @@ class YoloAccidentDetector:
                             probs = torch.nn.functional.softmax(outputs, dim=1)
                             # Assume index 0 is accident, index 1 is non_accident
                             accident_prob = float(probs[0][0]) * 100
-                            max_accident_prob = max(max_accident_prob, accident_prob)
+                            
+                            if accident_prob > 70.0:
+                                max_accident_prob = max(max_accident_prob, accident_prob)
                     except Exception as e:
                         pass # Ignore crop issues at image edge
                         
@@ -186,7 +204,7 @@ class YoloAccidentDetector:
                         accident_conf = min(95.0, 60 + (overlap * 150))
                         max_accident_prob = max(max_accident_prob, accident_conf)
 
-        if max_accident_prob >= 60.0:
+        if max_accident_prob >= 70.0:
             return "Accident", max_accident_prob
 
         return "Normal", max_vehicle_conf * 0.1
