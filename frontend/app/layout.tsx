@@ -7,9 +7,9 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'TrafficAI - AI-Powered Accident Detection',
+  title: 'AI-Based Accident Detection System',
   description: 'Professional AI-powered traffic monitoring and accident detection system for smart cities',
-  generator: 'v0.app',
+  generator: 'SAIKIRAN',
 
 }
 

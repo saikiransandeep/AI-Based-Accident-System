@@ -3,15 +3,22 @@ import cv2
 import numpy as np
 import sqlite3
 import random
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from yolo_model import YoloAccidentDetector
+from dotenv import load_dotenv
 
 # ---------------------------------------------------
 # Flask Setup
 # ---------------------------------------------------
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -20,6 +27,37 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "app.db")
 
 ACCIDENT_THRESHOLD = 60
+
+# ---------------------------------------------------
+# Email Setup
+# ---------------------------------------------------
+
+def send_email_alert(subject, body, to_email=None):
+    sender_email = os.getenv("GMAIL_SENDER")
+    app_password = os.getenv("GMAIL_APP_PASSWORD")
+    recipient_email = to_email or os.getenv("ALERT_EMAIL_TO")
+
+    if not sender_email or not app_password or not recipient_email:
+        print("E-mail configuration missing. Skipping alert.")
+        return False
+
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = recipient_email
+    message["Subject"] = subject
+    message.attach(MIMEText(body, "plain"))
+
+    context = ssl.create_default_context()
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(sender_email, app_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        print(f"Alert email sent to {recipient_email}")
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
 
 # ---------------------------------------------------
 # Load YOLO Model
@@ -101,12 +139,14 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS map_markers(
             id TEXT PRIMARY KEY,
-            lat REAL,
-            lng REAL,
             type TEXT,
-            title TEXT,
-            description TEXT,
-            severity TEXT,
+            name TEXT,
+            location TEXT,
+            status TEXT,
+            x REAL,
+            y REAL,
+            details TEXT,
+            confidence TEXT,
             timestamp TEXT
         )
     """)
@@ -451,12 +491,14 @@ def get_markers():
     for row in rows:
         markers.append({
             "id": row["id"],
-            "lat": row["lat"],
-            "lng": row["lng"],
             "type": row["type"],
-            "title": row["title"],
-            "description": row["description"],
-            "severity": row["severity"],
+            "name": row["name"],
+            "location": row["location"],
+            "status": row["status"],
+            "x": row["x"],
+            "y": row["y"],
+            "details": row["details"],
+            "confidence": row["confidence"],
             "timestamp": row["timestamp"]
         })
     conn.close()
@@ -502,6 +544,25 @@ def log_accident_to_db(camera_name,type_str,confidence):
 
     conn.commit()
     conn.close()
+
+    # Send Email Alert
+    subject = f"🚨 ALERT: Accident Detected - {camera_name}"
+    body = f"""
+Attention Admin,
+
+An accident has been detected by the TrafficAI Monitoring System.
+
+Incident Details:
+- Incident ID: {incident_id}
+- Camera: {camera_name}
+- Location: Upload
+- Type: {type_str}
+- Confidence: {confidence}%
+- Timestamp: {now()}
+
+Please check the dashboard for more details.
+"""
+    send_email_alert(subject, body)
 
 
 # ---------------------------------------------------

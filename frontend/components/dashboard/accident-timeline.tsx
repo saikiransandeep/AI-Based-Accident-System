@@ -33,24 +33,15 @@ const incidents = [
     timestamp: "14:17:03",
     confidence: 89.7,
   },
-  {
-    id: 4,
-    type: "Side Impact",
-    severity: "medium",
-    camera: "CAM-003",
-    location: "Industrial Zone",
-    timestamp: "13:58:22",
-    confidence: 91.3,
-  },
-  {
-    id: 5,
-    type: "Vehicle Fire",
-    severity: "critical",
-    camera: "CAM-001",
-    location: "Highway I-95 South",
-    timestamp: "13:45:11",
-    confidence: 99.1,
-  },
+  // {
+  //   id: 4,
+  //   type: "Side Impact",
+  //   severity: "medium",
+  //   camera: "CAM-003",
+  //   location: "Industrial Zone",
+  //   timestamp: "13:58:22",
+  //   confidence: 91.3,
+  // },
 ]
 
 const severityColors = {

@@ -4,3 +4,6 @@ numpy
 opencv-python
 python-dotenv
 twilio
+torch
+torchvision
+deep-sort-realtime

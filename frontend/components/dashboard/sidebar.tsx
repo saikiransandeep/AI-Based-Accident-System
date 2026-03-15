@@ -72,7 +72,10 @@ export function Sidebar() {
         </button>
 
         {/* Logo */}
-        <div className="flex items-center gap-3 p-6 border-b border-border/50 flex-shrink-0">
+        <div 
+          className="flex items-center gap-3 p-6 border-b border-border/50 flex-shrink-0 cursor-pointer hover:bg-white/5 transition-colors"
+          onClick={() => handleNavClick("dashboard")}
+        >
           <div className="relative">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center glow-cyan">
               <Shield className="w-6 h-6 text-primary" />

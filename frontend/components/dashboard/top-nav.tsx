@@ -46,10 +46,10 @@ export function TopNav() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border/50 px-4 lg:px-6 py-4 transition-all duration-300",
+        "sticky top-0 z-30 border-b border-border/50 px-4 lg:px-6 py-4 transition-colors duration-300 bg-white dark:bg-background",
         isScrolled
-          ? "bg-background shadow-md shadow-background/20"
-          : "glass-card"
+          ? "shadow-md shadow-background/20"
+          : ""
       )}
     >
       <div className="flex items-center justify-between gap-4">
