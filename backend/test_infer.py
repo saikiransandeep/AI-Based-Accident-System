@@ -5,7 +5,7 @@ import os
 def test():
     detector = YoloAccidentDetector()
     base = os.path.dirname(os.path.abspath(__file__))
-    img_path = os.path.join(base, "dataset", "val", "accident", "test10_56.jpg")
+    img_path = os.path.join(base, "dataset", "val", "non_accident", "test1_10.jpg")
     
     if not os.path.exists(img_path):
         print(f"Image not found at {img_path}")

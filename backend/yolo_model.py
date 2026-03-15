@@ -88,42 +88,52 @@ class YoloAccidentDetector:
         use_cnn = self.efficientnet is not None
         
         if not persist:
-            # Single image analysis (no tracking required)
-            for box in boxes:
-                x1, y1, x2, y2 = map(int, box)
-                h_frame, w_frame = frame.shape[:2]
-                x1, y1 = max(0, x1), max(0, y1)
-                x2, y2 = min(w_frame, x2), min(h_frame, y2)
-                
-                if use_cnn and (x2 > x1) and (y2 > y1):
-                    # Add 20% spatial context padding around the vehicle
-                    pad_w, pad_h = int((x2 - x1) * 0.20), int((y2 - y1) * 0.20)
-                    px1 = max(0, x1 - pad_w)
-                    py1 = max(0, y1 - pad_h)
-                    px2 = min(w_frame, x2 + pad_w)
-                    py2 = min(h_frame, y2 + pad_h)
+            # Single image analysis
+            if use_cnn:
+                try:
+                    # Evaluate the entire frame for better global context
+                    input_tensor = self.transform(frame).unsqueeze(0).to(self.device)
+                    with torch.no_grad():
+                        outputs = self.efficientnet(input_tensor)
+                        probs = torch.nn.functional.softmax(outputs, dim=1)
+                        accident_prob = float(probs[0][0]) * 100
+                        non_accident_prob = float(probs[0][1]) * 100
+                        
+                        print(f"[Single Full Frame] Prediction - Accident: {accident_prob:.1f}%, Normal: {non_accident_prob:.1f}%")
+                        
+                        if accident_prob > 70.0 and accident_prob > non_accident_prob:
+                            max_accident_prob = max(max_accident_prob, accident_prob)
+                except Exception as e:
+                    print("Full frame evaluation failed:", e)
                     
-                    crop = frame[py1:py2, px1:px2]
-                    try:
-                        input_tensor = self.transform(crop).unsqueeze(0).to(self.device)
-                        with torch.no_grad():
-                            outputs = self.efficientnet(input_tensor)
-                            probs = torch.nn.functional.softmax(outputs, dim=1)
-                            accident_prob = float(probs[0][0]) * 100
-                            # Require >70% confidence to consider it a definite accident from CNN
-                            if accident_prob > 70.0:
-                                max_accident_prob = max(max_accident_prob, accident_prob)
-                    except:
-                        pass
-                else:
+            if not use_cnn or max_accident_prob < 70.0:
+                for box in boxes:
+                    x1, y1, x2, y2 = map(int, box)
                     w, h = x2 - x1, y2 - y1
                     aspect_ratio = w / h if h != 0 else 0
-                    if 0.5 < aspect_ratio < 1.7: 
+                    if (0.5 < aspect_ratio < 1.7) and not use_cnn: 
                         max_accident_prob = max(max_accident_prob, 88.0)
-                    if aspect_ratio < 0.4 or aspect_ratio > 4.5:
+                    if (aspect_ratio < 0.4 or aspect_ratio > 4.5) and not use_cnn:
                         max_accident_prob = max(max_accident_prob, min(92.0, max_vehicle_conf + 40))
         else:
-            # 1. Evaluate CNN and Track History for videos
+            # Evaluate the entire frame for global context instead of crops
+            if use_cnn:
+                try:
+                    input_tensor = self.transform(frame).unsqueeze(0).to(self.device)
+                    with torch.no_grad():
+                        outputs = self.efficientnet(input_tensor)
+                        probs = torch.nn.functional.softmax(outputs, dim=1)
+                        accident_prob = float(probs[0][0]) * 100
+                        non_accident_prob = float(probs[0][1]) * 100
+                        
+                        print(f"[Video Full Frame] Prediction - Accident: {accident_prob:.1f}%, Normal: {non_accident_prob:.1f}%")
+                        
+                        if accident_prob > 70.0 and accident_prob > non_accident_prob:
+                            max_accident_prob = max(max_accident_prob, accident_prob)
+                except Exception as e:
+                    pass
+
+            # 1. Evaluate Track History for videos
             for track in tracks:
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue
@@ -132,35 +142,7 @@ class YoloAccidentDetector:
                 ltrb = track.to_ltrb()
                 x1, y1, x2, y2 = map(int, ltrb)
                 
-                # Bound boxes to frame size
-                h_frame, w_frame = frame.shape[:2]
-                x1, y1 = max(0, x1), max(0, y1)
-                x2, y2 = min(w_frame, x2), min(h_frame, y2)
-                
                 cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-                
-                # --- CNN Classification on Cropped Vehicle ---
-                if use_cnn and (x2 > x1) and (y2 > y1):
-                    # Add 20% spatial context padding around the vehicle for better CNN feature extraction
-                    pad_w, pad_h = int((x2 - x1) * 0.20), int((y2 - y1) * 0.20)
-                    px1 = max(0, x1 - pad_w)
-                    py1 = max(0, y1 - pad_h)
-                    px2 = min(w_frame, x2 + pad_w)
-                    py2 = min(h_frame, y2 + pad_h)
-                    
-                    crop = frame[py1:py2, px1:px2]
-                    try:
-                        input_tensor = self.transform(crop).unsqueeze(0).to(self.device)
-                        with torch.no_grad():
-                            outputs = self.efficientnet(input_tensor)
-                            probs = torch.nn.functional.softmax(outputs, dim=1)
-                            # Assume index 0 is accident, index 1 is non_accident
-                            accident_prob = float(probs[0][0]) * 100
-                            
-                            if accident_prob > 70.0:
-                                max_accident_prob = max(max_accident_prob, accident_prob)
-                    except Exception as e:
-                        pass # Ignore crop issues at image edge
                         
                 # --- Motion Intelligence History ---
                 if obj_id not in self.history:
