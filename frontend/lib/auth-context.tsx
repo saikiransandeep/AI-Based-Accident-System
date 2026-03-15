@@ -24,13 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for saved user session
-    const savedUser = localStorage.getItem("traffic_ai_user")
+    const savedUser = sessionStorage.getItem("traffic_ai_user")
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser))
       } catch (e) {
         console.error("Failed to parse saved user", e)
-        localStorage.removeItem("traffic_ai_user")
+        sessionStorage.removeItem("traffic_ai_user")
       }
     }
     setIsLoading(false)
@@ -38,17 +38,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (userData: User) => {
     setUser(userData)
-    localStorage.setItem("traffic_ai_user", JSON.stringify(userData))
+    sessionStorage.setItem("traffic_ai_user", JSON.stringify(userData))
   }
 
   const register = (userData: User) => {
     setUser(userData)
-    localStorage.setItem("traffic_ai_user", JSON.stringify(userData))
+    sessionStorage.setItem("traffic_ai_user", JSON.stringify(userData))
   }
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem("traffic_ai_user")
+    sessionStorage.removeItem("traffic_ai_user")
   }
 
   return (

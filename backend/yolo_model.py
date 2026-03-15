@@ -172,17 +172,18 @@ class YoloAccidentDetector:
                      max_accident_prob = max(max_accident_prob, min(92.0, max_vehicle_conf + 40))
 
         # 2. Collision Logic (Multi-vehicle) over raw YOLO boxes
-        if len(boxes) > 1:
+        # Only use overlap heuristics if CNN probability is low
+        if len(boxes) > 1 and max_accident_prob < 60.0 and not use_cnn:
             for i in range(len(boxes)):
                 for j in range(i + 1, len(boxes)):
                     overlap = self.iou(boxes[i], boxes[j])
                     dist = self.center_distance(centers[i], centers[j])
 
-                    if overlap > 0.15:
-                        accident_conf = min(99.0, 75 + (overlap * 150))
+                    if overlap > 0.4:
+                        accident_conf = min(99.0, 75 + (overlap * 100))
                         max_accident_prob = max(max_accident_prob, accident_conf)
-                    elif overlap > 0.05 and dist < 100:
-                        accident_conf = min(95.0, 60 + (overlap * 200))
+                    elif overlap > 0.2 and dist < 80:
+                        accident_conf = min(95.0, 60 + (overlap * 150))
                         max_accident_prob = max(max_accident_prob, accident_conf)
 
         if max_accident_prob >= 60.0:
