@@ -1,6 +1,6 @@
 # TrafficAI: Modern Accident Detection & Monitoring System
 
-TrafficAI is an advanced AI-powered traffic monitoring system designed to detect road accidents in real-time using CCTV footage. It leverages **YOLOv8** for high-precision detection and features a premium **Next.js** dashboard for real-time monitoring, alerts, and historical data analysis.
+TrafficAI is an advanced AI-powered traffic monitoring system designed to detect road accidents in real-time using CCTV footage. It leverages a robust hybrid pipeline featuring **YOLOv8** for detection, **DeepSORT** for multi-object tracking, and a custom **EfficientNet CNN** for pinpoint accident classification. It also features a premium **Next.js** dashboard for real-time monitoring, alerts, and historical data analysis.
 
 ---
 
@@ -18,8 +18,8 @@ TrafficAI is an advanced AI-powered traffic monitoring system designed to detect
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15+, Tailwind CSS, Shadcn UI, Recharts, Lucide Icons.
-- **Backend**: Flask (Python), SQLite, YOLOv8 (Ultralytics), OpenCV.
-- **Detection**: YOLOv8 Neural Network.
+- **Backend**: Flask (Python), SQLite, PyTorch, YOLOv8 (Ultralytics), OpenCV, DeepSORT.
+- **Detection**: YOLOv8m + EfficientNet-B0 + DeepSORT Object Tracking.
 
 ---
 
@@ -105,6 +105,48 @@ pnpm dev
 npm run dev
 ```
 *The dashboard will be available at `http://localhost:3000`.*
+
+---
+
+## 🧠 Model Training (EfficientNet CNN)
+
+This project has been upgraded to support a custom **EfficientNet-B0 CNN** alongside **YOLOv8m** and **DeepSORT Object Tracking** for highly accurate accident classification. 
+
+If you want to train the model on your own dataset:
+
+### 1. Prepare your Dataset
+Ensure your dataset is placed in the `backend/dataset/` directory with the following structure:
+```text
+backend/
+└── dataset/
+    ├── train/
+    │   ├── accident/       # Images of accidents
+    │   └── non_accident/   # Images of normal traffic
+    └── val/
+        ├── accident/
+        └── non_accident/
+```
+
+### 2. Train the CNN Model
+Once the dataset is in place, trigger the PyTorch training script. Navigate to the `backend` folder:
+```bash
+cd backend
+
+# Ensure your virtual environment is still activated
+python train_cnn.py
+```
+
+The script will:
+- Load images and apply data augmentations (flips, rotations, color jitters).
+- Train the EfficientNet-B0 model over 15 epochs (this can be configured inside `train_cnn.py`).
+- Automatically save the highest-performing weights as `efficientnet_accident.pth` in the `backend/` directory.
+
+### 3. Run the Inference Pipeline
+You do not need to change any configuration! When `app.py` runs, `yolo_model.py` will automatically look for the trained `efficientnet_accident.pth` weights. 
+- **YOLOv8** will detect vehicles.
+- **DeepSORT** will track those vehicles across consecutive frames.
+- The **EfficientNet CNN** will evaluate cropped bounding boxes of tracked vehicles to output a real-time accident probability!
+*(Note: If the `.pth` weights file is missing, the system will seamlessly fall back to overlap and motion heuristics, so nothing breaks).*
 
 ---
 
