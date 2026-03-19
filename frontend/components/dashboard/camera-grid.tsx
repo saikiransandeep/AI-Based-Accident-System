@@ -119,7 +119,7 @@ export function CameraGrid() {
               camera.hasAlert && "border-destructive/50",
             )}>
             {/* Simulated Video Feed */}
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/80 to-secondary/60">
+            <div className="absolute inset-0 bg-linear-to-br from-secondary via-secondary/80 to-secondary/60">
               {/* Grid overlay */}
               <div
                 className="absolute inset-0 opacity-20"
@@ -135,7 +135,7 @@ export function CameraGrid() {
               {/* Scan line effect */}
               {activeCameras[camera.id] && (
                 <div
-                  className="absolute left-0 right-0 h-1 bg-gradient-to-b from-primary/30 to-transparent pointer-events-none"
+                  className="absolute left-0 right-0 h-1 bg-linear-to-b from-primary/30 to-transparent pointer-events-none"
                   style={{
                     top: `${scanLines[camera.id]}%`,
                     transition: "top 0.05s linear",
@@ -175,7 +175,7 @@ export function CameraGrid() {
             )}
 
             {/* Camera Info Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/80 via-black/40 to-transparent">
               <div className="flex items-end justify-between">
                 <div>
                   <h4 className="font-medium text-sm text-white">
