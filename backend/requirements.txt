@@ -1,9 +1,10 @@
 Flask
+Flask-Cors
 Werkzeug
 numpy
 opencv-python
 python-dotenv
-twilio
 torch
 torchvision
+ultralytics
 deep-sort-realtime
