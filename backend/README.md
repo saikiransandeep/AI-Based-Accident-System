@@ -42,7 +42,13 @@ The dataset used for this project is sourced from Kaggle:
 ---
 
 ## Model Training
-To train the model, use the Jupyter Notebook file `road-accident-detection.ipynb` included in the repository. This notebook provides the steps to train the machine learning model using the Kaggle dataset.
+To train the custom CNN model for accident classification, run the following command in your terminal:
+
+```bash
+python train_cnn.py
+```
+
+This script will use the dataset in the `dataset/` directory to train and save the `efficientnet_accident.pth` model.
 
 ### Pre-Trained Model
 If you prefer to use a pre-trained model, you can download it from the link below:  
