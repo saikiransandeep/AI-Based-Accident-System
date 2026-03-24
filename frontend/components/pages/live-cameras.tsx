@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/lib/auth-context";
 
 interface Detection {
   id: string;
@@ -42,6 +43,7 @@ interface UploadedFile {
 }
 
 export function LiveCamerasPage() {
+  const { user } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -138,6 +140,10 @@ export function LiveCamerasPage() {
         formData.append("video", selectedFile.file);
       } else {
         formData.append("image", selectedFile.file);
+      }
+
+      if (user?.email) {
+        formData.append("user_email", user.email);
       }
 
       const response = await fetch(endpoint, {

@@ -242,6 +242,7 @@ def login():
 def detect_image():
 
     file = request.files.get("image")
+    user_email = request.form.get("user_email")
 
     if not file:
         return jsonify({"error":"no image"}),400
@@ -253,7 +254,7 @@ def detect_image():
 
     if pred == "Accident" and prob >= ACCIDENT_THRESHOLD:
 
-        log_accident_to_db("Upload Image","Vehicle Collision",round(prob,2))
+        log_accident_to_db("Upload Image","Vehicle Collision",round(prob,2), user_email=user_email)
 
         return jsonify({
             "prediction":"Accident",
@@ -274,6 +275,7 @@ def detect_image():
 def detect_video():
 
     file = request.files.get("video")
+    user_email = request.form.get("user_email")
 
     if not file:
         return jsonify({"error": "no video"}), 400
@@ -312,7 +314,7 @@ def detect_video():
 
     if is_accident:
 
-        log_accident_to_db("Upload Video","Vehicle Collision",round(max_prob,2))
+        log_accident_to_db("Upload Video","Vehicle Collision",round(max_prob,2), user_email=user_email)
 
         return jsonify({
             "prediction":"Accident",
@@ -522,7 +524,7 @@ def system_health():
 # Log Accident
 # ---------------------------------------------------
 
-def log_accident_to_db(camera_name,type_str,confidence):
+def log_accident_to_db(camera_name,type_str,confidence,user_email=None):
 
     conn = get_db()
     cur = conn.cursor()
@@ -562,7 +564,7 @@ Incident Details:
 
 Please check the dashboard for more details.
 """
-    send_email_alert(subject, body)
+    send_email_alert(subject, body, to_email=user_email)
 
 
 # ---------------------------------------------------
